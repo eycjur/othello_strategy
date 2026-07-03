@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6×6 リバーシ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>6×6 リバーシ</h1>
+</header>
+
+<main>
+  <section class="board-area">
+    <div class="board-wrap">
+      <div class="col-labels" id="colLabels"></div>
+      <div class="row-labels" id="rowLabels"></div>
+      <div class="board" id="board"></div>
+    </div>
+    <div class="board-actions">
+      <button id="btnRestart">⟲ 最初から</button>
+      <button id="btnUndo">↩ 1手戻す</button>
+      <button id="btnBest">★ 最善手を打つ</button>
+    </div>
+    <div class="status-bar" id="statusBar"></div>
+  </section>
+
+  <aside class="panel">
+    <div class="card score-card">
+      <div class="score" id="scoreBlack">
+        <div class="who"><span class="stone-icon black"></span><span class="label">黒</span></div>
+        <div class="val"><span class="pts" id="ptsBlack">0</span><span class="unit">HP</span></div>
+      </div>
+      <div class="turn-info" id="turnInfo"></div>
+      <div class="score" id="scoreWhite">
+        <div class="who"><span class="stone-icon white"></span><span class="label">白</span></div>
+        <div class="val"><span class="pts" id="ptsWhite">0</span><span class="unit">HP</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <label>初期HP <span class="stone-icon black"></span>
+          <button type="button" class="hp-step" data-hp="black" data-delta="-5000">-5000</button>
+          <input type="number" id="hpBlack" value="30000" min="1" step="1000">
+          <button type="button" class="hp-step" data-hp="black" data-delta="5000">+5000</button>
+        </label>
+        <label><span class="stone-icon white"></span>
+          <button type="button" class="hp-step" data-hp="white" data-delta="-5000">-5000</button>
+          <input type="number" id="hpWhite" value="30000" min="1" step="1000">
+          <button type="button" class="hp-step" data-hp="white" data-delta="5000">+5000</button>
+        </label>
+        <button id="btnNew" class="primary">新規ゲーム</button>
+      </div>
+    </div>
+
+    <div class="card formula-card">
+      <h2>ポイント式（R = 返した枚数, C = コンボ数, D = 確定コンボ）</h2>
+      <div class="formula-row">
+        <span class="formula-label"><span class="stone-icon black"></span>黒</span>
+        <select id="presetBlack">
+          <option value="attack">殴りデッキ</option>
+          <option value="other">その他</option>
+          <option value="custom">カスタム</option>
+        </select>
+        <input type="text" id="formulaBlack" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="formula-row">
+        <span class="formula-label"><span class="stone-icon white"></span>白</span>
+        <select id="presetWhite">
+          <option value="attack">殴りデッキ</option>
+          <option value="other">その他</option>
+          <option value="custom">カスタム</option>
+        </select>
+        <input type="text" id="formulaWhite" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="formula-error" id="formulaError"></div>
+    </div>
+
+    <div class="card analysis" id="analysisCard">
+      <h2>最善プレイ解析</h2>
+      <div class="eval-main" id="evalMain">—</div>
+      <div class="eval-detail" id="evalDetail"></div>
+      <div class="eval-progress" id="evalProgress"></div>
+    </div>
+
+    <details class="card rules">
+      <summary>ルール説明</summary>
+      <ul>
+        <li>6×6 盤の標準リバーシ。黒が先手です。</li>
+        <li>初期盤面（中央4石）以降に打たれた石には<b>マーク</b>が付きます（黒石は 🐱、白石は 🐶）。<b>反転されるとマークは消えます</b>。</li>
+        <li><b>打った石と自分のマーク石で相手の石を挟んで返すとコンボ成立</b>。1手の獲得ポイントは<b>ポイント式 f(R, C, D)</b> で決まります（R = その手で返した枚数、C = コンボ数 = マーク石で挟んだライン数、D = 確定コンボなら1）。式はプリセット（殴りデッキ / その他）から選ぶか、カスタムで自由に書けます。式を変えると過去の手も含めて全ポイントが再計算されます。</li>
+        <li><b>確定コンボ（D=1）</b>: 打った石が<b>相手の次の1手では絶対に返されず</b>、かつ<b>相手がどう応じても次の自分の手番でその石を起点にコンボできる</b>場合です。次のコンボが約束された手といえます。D はその手で打った石だけを判定します。</li>
+        <li>自分のマーク石を相手に反転されるとコンボ元が消えるので、マーク石を守りながら挟むのがポイントです。</li>
+        <li>両プレイヤーは<b>初期HP</b>（デフォルト各 30000、黒白別に変更可）を持ち、獲得ポイントはそのまま<b>相手への与ダメージ</b>になります。<b>相手のHPを先に0にした方の勝ち</b>です。盤面が埋まる／両者連続パスの場合は残りHPが多い方の勝ちです。</li>
+        <li>打てる場所がない場合は自動でパスします（与ダメ0）。</li>
+        <li><b>黄色のマス</b>は次に打てる場所、<b>橙色のマス</b>はその手でコンボが成立する場所です。各マスには獲得ポイント（右上の「+○○」）と、その手の <b>R / C / D</b> の値（下部）を表示します。青枠は解析による推奨手です。</li>
+        <li>「最善プレイ解析」は、両者が最善を尽くした場合の最終HP差（KOによる勝敗確定を含む）を αβ探索で読んだ値です。読みの地平は<b>ゲーム開始から16手目</b>に固定です（読む深さ = 16 − 経過手数）。読み切るまで計算し、途中経過は「暫定」として随時表示されます。KO時もオーバーキル分を含む最終HP差を表示します。</li>
+      </ul>
+    </details>
+  </aside>
+</main>
+
+<script src="engine.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
